@@ -285,6 +285,21 @@ describe('richText', () => {
       );
     });
 
+    it('should add link inside non-whitespace-sequence (http://example.com)', () => {
+      const wrapper = render(
+        <span>
+          {richText('Link: ((http://example.com/path_(etc))) asdf', { ...options, linkify: true })}
+        </span>
+      );
+      // <span>
+      //   Link: (<a href=\"http://example.com\" target=\"_blank\" rel=\"noopener noreferrer\">http://example.com</a>)
+      // </span>
+      const htmlString = wrapper.asFragment().firstChild.outerHTML;
+      expect(htmlString).toEqual(
+        `<span>Link: (<a href="http://example.com" class="longWord" target="_blank" rel="noopener noreferrer">http://example.com</a>)</span>`
+      );
+    });
+
     it('should add link inside non-whitespace-sequence that ends to common puctuation (!:,.;)', () => {
       // !
       const wrapper = render(

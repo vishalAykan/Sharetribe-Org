@@ -87,18 +87,42 @@ export const linkifyOrWrapLinkSplit = (word, key, options = {}) => {
   // https://stackoverflow.com/questions/1500260/detect-urls-in-text-with-javascript
 
   // eslint-disable-next-line no-useless-escape
-  const urlRegex = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|\(\)!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+  const urlRegex = /(\bhttps?:\/\/[-A-Z0-9+&@#\/%?=~_|\(\)!:,.;]*[-A-Z0-9+&@#\/%=~_|\)])/gi;
   if (word.match(urlRegex)) {
+    const getOpenedParenthesis = str =>
+      Array.from(str).reduce((opened, currentChar) => {
+        return currentChar === '(' ? ++opened : currentChar === ')' ? --opened : opened;
+      }, 0);
+    const splitExtraParanthesis = str => {
+      const parenthesesCount = getOpenedParenthesis(str);
+      if (parenthesesCount < 0) {
+        const trailingParentheses = Array.from(str)
+          .reverse()
+          .reduce((count, currentChar) => {
+            return currentChar === ')' && parenthesesCount + count < 0 ? ++count : count;
+          }, 0);
+        return [
+          str.slice(0, -1 * trailingParentheses),
+          str.slice(-1 * trailingParentheses),
+        ];
+      }
+      return [str];
+    };
+
     // Split strings like "(http://www.example.com)" to ["(","http://www.example.com",")"]
     return word.split(urlRegex).map(w => {
       const isEmptyString = !w.match(urlRegex);
-      const sanitizedURL = !isEmptyString && linkify ? sanitizeUrl(w) : w;
+      const [sanitizedURL, extra] =
+        !isEmptyString && linkify ? splitExtraParanthesis(sanitizeUrl(w)) : [w];
       return isEmptyString ? (
         w
       ) : linkify ? (
-        <ExternalLink key={key} href={sanitizedURL} className={linkClass}>
-          {sanitizedURL}
-        </ExternalLink>
+        <>
+          <ExternalLink key={key} href={sanitizedURL} className={linkClass}>
+            {sanitizedURL}
+          </ExternalLink>
+          {extra}
+        </>
       ) : linkClass ? (
         <span key={key} className={linkClass}>
           {w}
